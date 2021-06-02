@@ -1,7 +1,9 @@
 package Book;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -25,23 +27,25 @@ public class BookService {
 
     public void deleteBook(Integer id) throws IOException {
         if(!bookRepository.exists(id))
-            throw new IllegalStateException("This book doesn't exists in the database");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This book doesn't exists in the database");
         bookRepository.deleteBook(id);
     }
 
     public Book getBookByID(Integer id) throws IOException {
         if(!bookRepository.exists(id))
-            throw new IllegalStateException("This book doesn't exists in the database");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This book doesn't exists in the database");
         return bookRepository.getById(id);
     }
 
     public void takeBook(Integer id, TakenBook takenBook) throws IOException {
+        if(!bookRepository.exists(id))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This book does not exists");
         if(Period.between(LocalDate.now(),takenBook.returnDateEndOfKeepingPeriod()).getMonths() > 2)
-            throw new IllegalStateException("Taking for longer than 2 months");
-        if(bookRepository.getTakenBookCount(takenBook.getPersonName()) > 3)
-            throw new IllegalStateException("Taking more than 3 books aren't allowed");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Taking for longer than 2 months");
+        if(bookRepository.getTakenBookCount(takenBook.getPersonName()) >= 3)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Taking more than 3 books aren't allowed");
         if(!bookRepository.isAvialible(id,LocalDate.now()))
-            throw new IllegalStateException("This book is not available at the moment");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This book is not available at the moment");
         takenBook.setBookId(id);
         bookRepository.addBookTake(takenBook);
     }
